@@ -2,7 +2,7 @@
 Rabbit class for the game
 """
 
-from PyQt5.QtCore import QRectF
+from PyQt5.QtCore import QRectF, QPointF
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush
 from character import Character, CharacterType
 import math
@@ -30,6 +30,11 @@ class Rabbit(Character):
         self.random_target_y = None
         self.wait_timer = 0.0
         self.is_waiting = False
+        
+        # Breeding system
+        self.is_breeding = False
+        self.breeding_timer = 0.0
+        self.breeding_cooldown = 0.0  # Cooldown between breeding attempts
     
     def update_needs(self, delta_time=0.016):
         """Update needs over time"""
@@ -49,6 +54,10 @@ class Rabbit(Character):
         if self.is_sleeping:
             self.sleep_level = min(100, self.sleep_level + 20 * delta_time)  # +20 per second
         
+        # Update breeding cooldown
+        if self.breeding_cooldown > 0:
+            self.breeding_cooldown -= delta_time
+        
         # Update action timer
         if self.action_timer > 0:
             self.action_timer -= delta_time
@@ -66,6 +75,10 @@ class Rabbit(Character):
                         # Continue sleeping - reset timer
                         sleep_needed = 100 - self.sleep_level
                         self.action_timer = sleep_needed / 20.0
+                elif self.is_breeding:
+                    self.is_breeding = False
+                    # Set cooldown (30 seconds before can breed again)
+                    self.breeding_cooldown = 30.0
                 if not self.is_sleeping:
                     self.target_facility = None
         
@@ -96,10 +109,20 @@ class Rabbit(Character):
         self.is_eating = False
         self.is_drinking = False
         self.is_sleeping = True
+        self.is_breeding = False
         # Calculate duration needed to restore sleep to 100
         sleep_needed = 100 - self.sleep_level
         # Sleep restores at 20 per second, so calculate time needed
         self.action_timer = max(duration, sleep_needed / 20.0)
+    
+    def start_breeding(self, duration=3.0):
+        """Start breeding animation"""
+        self.is_eating = False
+        self.is_drinking = False
+        self.is_sleeping = False
+        self.is_breeding = True
+        self.action_timer = duration
+        self.breeding_timer = duration
     
     def move_towards(self, target_x, target_y, world):
         """Move towards a target, avoiding collisions - moves directly in 2D space"""
@@ -188,7 +211,25 @@ class Rabbit(Character):
                               ear_size, ear_size * 2)
             
             # Draw action indicators
-            if self.is_eating:
+            if self.is_breeding:
+                # Draw hearts above head
+                heart_y = int(center_y - self.size // 2 - 15 + anim_offset_y)
+                painter.setPen(QPen(QColor(255, 100, 150), 1))
+                painter.setBrush(QBrush(QColor(255, 150, 200)))
+                # Draw two hearts
+                for i in range(2):
+                    heart_x = int(center_x - 8 + i * 8)
+                    # Simple heart shape (two circles and a triangle)
+                    painter.drawEllipse(heart_x - 3, heart_y, 4, 4)
+                    painter.drawEllipse(heart_x + 1, heart_y, 4, 4)
+                    # Triangle bottom
+                    points = [
+                        QPointF(heart_x - 3, heart_y + 2),
+                        QPointF(heart_x + 5, heart_y + 2),
+                        QPointF(heart_x + 1, heart_y + 6)
+                    ]
+                    painter.drawPolygon(points)
+            elif self.is_eating:
                 # Draw food icon above head
                 food_y = int(center_y - self.size // 2 - 12 + anim_offset_y)
                 painter.setPen(QPen(QColor(255, 100, 100), 1))

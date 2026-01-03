@@ -43,6 +43,11 @@ class GameView(QWidget):
         self.mouse_x = 0
         self.mouse_y = 0
         
+        # FPS counter
+        self.frame_times = []
+        self.fps = 0
+        self.last_fps_update = 0
+        
         # Create hotbar
         self.hotbar = Hotbar(self.width(), self.height())
         
@@ -66,6 +71,23 @@ class GameView(QWidget):
         
     def update_game(self):
         """Update game state and camera position"""
+        # Calculate FPS
+        import time
+        current_time = time.time()
+        if hasattr(self, 'last_frame_time'):
+            frame_time = current_time - self.last_frame_time
+            self.frame_times.append(frame_time)
+            # Keep only last 60 frames for averaging
+            if len(self.frame_times) > 60:
+                self.frame_times.pop(0)
+            # Update FPS every 0.5 seconds
+            if current_time - self.last_fps_update > 0.5:
+                if self.frame_times:
+                    avg_frame_time = sum(self.frame_times) / len(self.frame_times)
+                    self.fps = int(1.0 / avg_frame_time) if avg_frame_time > 0 else 0
+                self.last_fps_update = current_time
+        self.last_frame_time = current_time
+        
         warden = self.world.get_warden()
         if not warden:
             return
@@ -141,10 +163,11 @@ class GameView(QWidget):
                         # Still eating - don't move
                         continue
                 
-                # Update needs for non-farm eating
+                
+                # Update needs for non-farm eating, non-breeding
                 character.update_needs(delta_time)
                 
-                # Handle current action (eating, drinking, sleeping)
+                # Handle current action (eating, drinking, sleeping, breeding)
                 # Note: Farm eating is handled above, so skip if already handled
                 if character.is_eating and character.target_facility and hasattr(character.target_facility, 'block_type') and character.target_facility.block_type == BlockType.FARM:
                     continue  # Farm eating already handled above
@@ -153,6 +176,38 @@ class GameView(QWidget):
                 if character.is_sleeping:
                     # Rabbits stay still while sleeping until fully rested
                     continue  # Don't move while sleeping
+                if character.is_breeding:
+                    continue  # Don't move while breeding
+                
+                # Check breeding conditions FIRST (before other actions)
+                # Full health and 75%+ food, no cooldown, not sleeping
+                if (character.health >= 100 and 
+                    character.food_level >= 75 and 
+                    character.breeding_cooldown <= 0 and
+                    character.sleep_level >= 20):
+                    # Random chance to breed (5% chance per frame when conditions met)
+                    if random.random() < 0.05:
+                        character.start_breeding()
+                        # Create a new rabbit immediately
+                        offset_x = random.uniform(-30, 30)
+                        offset_y = random.uniform(-30, 30)
+                        new_rabbit_x = character.x + offset_x
+                        new_rabbit_y = character.y + offset_y
+                        # Clamp to world bounds
+                        new_rabbit_x = max(50, min(new_rabbit_x, world_width - 50))
+                        new_rabbit_y = max(50, min(new_rabbit_y, world_height - 50))
+                        # Create new rabbit
+                        new_rabbit = Rabbit(new_rabbit_x, new_rabbit_y)
+                        new_rabbit.food_level = random.uniform(50, 100)
+                        new_rabbit.water_level = random.uniform(50, 100)
+                        new_rabbit.sleep_level = random.uniform(50, 100)
+                        new_rabbit.health = 100
+                        self.world.characters.append(new_rabbit)
+                        # Reset random movement
+                        character.random_target_x = None
+                        character.random_target_y = None
+                        character.is_waiting = False
+                        continue
                 
                 # Check needs and seek facilities
                 target_x = None
@@ -224,6 +279,7 @@ class GameView(QWidget):
                             character.random_target_x = None
                             character.random_target_y = None
                             character.is_waiting = False
+                
                 
                 # Check if needs sleep
                 if character.sleep_level < 20 and not should_seek_facility:
@@ -405,6 +461,9 @@ class GameView(QWidget):
         # Reset translation for UI elements
         painter.resetTransform()
         
+        # Draw FPS counter (top right)
+        self._draw_fps(painter)
+        
         # Draw resources UI (top left)
         self._draw_resources(painter)
         
@@ -510,4 +569,28 @@ class GameView(QWidget):
         # Draw rabbit counter
         painter.drawText(start_x, start_y + line_height * 4, "🐰")
         painter.drawText(start_x + 25, start_y + line_height * 4, f"{rabbit_count}")
+    
+    def _draw_fps(self, painter: QPainter):
+        """Draw FPS counter in top right corner"""
+        # Set font and color for FPS
+        painter.setPen(QPen(QColor(255, 255, 255), 2))
+        font = painter.font()
+        font.setPointSize(14)
+        font.setBold(True)
+        painter.setFont(font)
+        
+        # Draw FPS text
+        fps_text = f"FPS: {self.fps}"
+        text_width = painter.fontMetrics().width(fps_text)
+        fps_x = self.width() - text_width - 15
+        fps_y = 25
+        
+        # Draw background
+        painter.setPen(QPen(QColor(0, 0, 0), 1))
+        painter.setBrush(QBrush(QColor(0, 0, 0, 150)))
+        painter.drawRoundedRect(fps_x - 5, fps_y - 15, text_width + 10, 20, 3, 3)
+        
+        # Draw FPS text
+        painter.setPen(QPen(QColor(255, 255, 255), 2))
+        painter.drawText(fps_x, fps_y, fps_text)
 
