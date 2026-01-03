@@ -295,17 +295,49 @@ class GameWorld:
         """Update all bullets"""
         bullets_to_remove = []
         for bullet in self.bullets:
+            if not bullet.active:
+                continue
+                
             bullet.update()
+            bullet_rect = bullet.get_rect()
+            
+            # Check collision with rabbits (characters)
+            for character in self.characters:
+                if isinstance(character, Rabbit):
+                    char_rect = character.get_rect()
+                    if bullet_rect.intersects(char_rect):
+                        # Rabbit takes damage
+                        character.health -= 25  # 25 damage per bullet
+                        bullets_to_remove.append(bullet)
+                        # Remove rabbit if health drops to 0 or below
+                        if character.health <= 0:
+                            # Rabbit dies - could remove it or mark as dead
+                            # For now, just remove it
+                            if character in self.characters:
+                                self.characters.remove(character)
+                        break
+            
             # Check if bullet is out of bounds
             if (bullet.x < 0 or bullet.x > self.width or 
                 bullet.y < 0 or bullet.y > self.height):
                 bullets_to_remove.append(bullet)
+                continue
+                
             # Check collision with walls
-            bullet_rect = bullet.get_rect()
             for wall in self.walls:
                 if bullet_rect.intersects(wall.rect):
                     bullets_to_remove.append(bullet)
                     break
+            
+            # Check collision with blocking blocks (walls, doors, fences)
+            for block in self.placed_blocks:
+                if (block.block_type == BlockType.WALL or 
+                    block.block_type == BlockType.FENCE or
+                    (block.block_type == BlockType.DOOR and not block.is_open)):
+                    if bullet_rect.intersects(block.get_rect()):
+                        bullets_to_remove.append(bullet)
+                        break
+                        
         # Remove inactive bullets
         for bullet in bullets_to_remove:
             if bullet in self.bullets:
