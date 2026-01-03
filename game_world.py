@@ -30,10 +30,12 @@ class GameWorld:
         
         # Create walls (prison cells and boundaries)
         self.walls = []
-        self._create_walls()
         
-        # Create placed blocks list (must be before _create_characters)
+        # Create placed blocks list (must be before _create_walls to add fences)
         self.placed_blocks = []
+        
+        # Create fence around exterior
+        self._create_walls()
         
         # Create characters
         self.characters = []
@@ -48,8 +50,32 @@ class GameWorld:
         
     def _create_walls(self):
         """Create the initial wall layout"""
-        # No walls at the beginning - empty world
-        pass
+        # Create fence around the exterior of the map
+        fence_size = 50
+        fence_thickness = 50
+        
+        # Top fence
+        for x in range(0, self.width, fence_size):
+            fence = Block(x, 0, BlockType.FENCE)
+            self.placed_blocks.append(fence)
+        
+        # Bottom fence (with entrance gap)
+        entrance_start = self.width // 2 - fence_size * 2  # 2 blocks wide entrance
+        entrance_end = self.width // 2 + fence_size * 2
+        for x in range(0, self.width, fence_size):
+            if not (entrance_start <= x < entrance_end):
+                fence = Block(x, self.height - fence_thickness, BlockType.FENCE)
+                self.placed_blocks.append(fence)
+        
+        # Left fence
+        for y in range(fence_size, self.height - fence_thickness, fence_size):
+            fence = Block(0, y, BlockType.FENCE)
+            self.placed_blocks.append(fence)
+        
+        # Right fence
+        for y in range(fence_size, self.height - fence_thickness, fence_size):
+            fence = Block(self.width - fence_thickness, y, BlockType.FENCE)
+            self.placed_blocks.append(fence)
         
     def _create_characters(self):
         """Create initial characters (warden and rabbits)"""
@@ -150,7 +176,11 @@ class GameWorld:
                 block.block_type == BlockType.WATER or 
                 block.block_type == BlockType.FARM):
                 continue  # Food, water, and farm blocks don't block movement
-            if test_rect.intersects(block.get_rect()):
+            if block.block_type == BlockType.FENCE:
+                # Fences block movement
+                if test_rect.intersects(block.get_rect()):
+                    return True
+            elif test_rect.intersects(block.get_rect()):
                 return True
                 
         # Check world bounds
@@ -170,7 +200,20 @@ class GameWorld:
     
     def draw(self, painter: QPainter):
         """Draw the entire world"""
-        # Draw floor grid for reference
+        # Draw grassy background
+        painter.fillRect(0, 0, self.width, self.height, QColor(100, 150, 80))
+        
+        # Draw path to entrance (bottom center)
+        path_width = 100
+        path_start_y = self.height - 200  # Start path 200 pixels from bottom
+        path_center_x = self.width // 2
+        painter.setPen(QPen(QColor(0, 0, 0, 0)))
+        painter.setBrush(QBrush(QColor(139, 115, 85)))  # Dirt/tan path color
+        # Draw path from bottom entrance going up
+        painter.drawRect(path_center_x - path_width // 2, path_start_y, 
+                        path_width, self.height - path_start_y)
+        
+        # Draw floor grid for reference (lighter on grass)
         self._draw_grid(painter)
         
         # Draw walls
@@ -183,6 +226,11 @@ class GameWorld:
             if (block.block_type == BlockType.FARM or 
                 block.block_type == BlockType.FOOD or 
                 block.block_type == BlockType.WATER):
+                block.draw(painter)
+        
+        # Draw fences (after non-blocking blocks, before characters)
+        for block in self.placed_blocks:
+            if block.block_type == BlockType.FENCE:
                 block.draw(painter)
             
         # Draw characters (appear on top of non-blocking blocks)
@@ -548,7 +596,7 @@ class GameWorld:
     def _draw_grid(self, painter: QPainter):
         """Draw a grid on the floor for reference"""
         grid_size = 50
-        painter.setPen(QPen(QColor(180, 180, 180), 1))
+        painter.setPen(QPen(QColor(120, 160, 100), 1))  # Lighter green for grass grid
         
         # Draw vertical lines
         for x in range(0, self.width, grid_size):

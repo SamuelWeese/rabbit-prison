@@ -2,7 +2,7 @@
 Block system for building structures
 """
 
-from PyQt5.QtCore import QRectF
+from PyQt5.QtCore import QRectF, QPointF
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush
 from enum import Enum
 
@@ -13,6 +13,7 @@ class BlockType(Enum):
     FOOD = "food"
     WATER = "water"
     FARM = "farm"  # Farm plot that grows food
+    FENCE = "fence"  # Farm fence
 
 
 class Block:
@@ -171,6 +172,45 @@ class Block:
                 # Carrot 2
                 painter.drawEllipse(int(self.x + self.size // 2 + 2), 
                                   int(self.y + self.size - 8), 6, 8)
+        
+        elif self.block_type == BlockType.FENCE:
+            # Draw fence (wooden picket fence style)
+            # Wood color
+            wood_color = QColor(139, 90, 43)
+            dark_wood = QColor(101, 67, 33)
+            
+            # Background (slightly lighter)
+            painter.setPen(QPen(QColor(0, 0, 0, 0)))
+            painter.setBrush(QBrush(QColor(150, 110, 60)))
+            painter.drawRect(int(self.x), int(self.y), self.size, self.size)
+            
+            # Draw pickets (vertical slats)
+            picket_width = 6
+            picket_spacing = 8
+            num_pickets = 3
+            start_x = self.x + (self.size - (num_pickets * picket_width + (num_pickets - 1) * picket_spacing)) // 2
+            
+            for i in range(num_pickets):
+                picket_x = int(start_x + i * (picket_width + picket_spacing))
+                # Picket post
+                painter.setPen(QPen(dark_wood, 1))
+                painter.setBrush(QBrush(wood_color))
+                painter.drawRect(picket_x, int(self.y), picket_width, self.size)
+                # Picket top (pointed)
+                points = [
+                    QPointF(picket_x, self.y),
+                    QPointF(picket_x + picket_width // 2, self.y - 4),
+                    QPointF(picket_x + picket_width, self.y)
+                ]
+                painter.drawPolygon(points)
+            
+            # Horizontal rails
+            painter.setPen(QPen(dark_wood, 2))
+            painter.setBrush(QBrush(wood_color))
+            # Top rail
+            painter.drawRect(int(self.x), int(self.y + 8), self.size, 3)
+            # Bottom rail
+            painter.drawRect(int(self.x), int(self.y + self.size - 11), self.size, 3)
     
     def update_growth(self, delta_time):
         """Update farm growth over time"""
