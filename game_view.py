@@ -462,14 +462,17 @@ class GameView(QWidget):
         event.accept()
     
     def _draw_resources(self, painter: QPainter):
-        """Draw resource display (carrots, money, rabbit meat, rabbit poop) vertically in top left"""
+        """Draw resource display (carrots, money, rabbit meat, rabbit poop) and rabbit counter vertically in top left"""
         warden = self.world.get_warden()
         if not warden:
             return
         
+        # Count rabbits
+        rabbit_count = sum(1 for char in self.world.characters if isinstance(char, Rabbit))
+        
         # Background panel
         panel_width = 100
-        panel_height = 110
+        panel_height = 135  # Increased to fit rabbit counter
         panel_x = 10
         panel_y = 10
         
@@ -503,4 +506,8 @@ class GameView(QWidget):
         # Draw rabbit poop
         painter.drawText(start_x, start_y + line_height * 3, "💩")
         painter.drawText(start_x + 25, start_y + line_height * 3, f"{warden.rabbit_poop}")
+        
+        # Draw rabbit counter
+        painter.drawText(start_x, start_y + line_height * 4, "🐰")
+        painter.drawText(start_x + 25, start_y + line_height * 4, f"{rabbit_count}")
 
