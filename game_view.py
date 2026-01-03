@@ -113,10 +113,41 @@ class GameView(QWidget):
         
         for character in self.world.characters:
             if isinstance(character, Rabbit):
-                # Update needs
+                # Check for farm destruction BEFORE update_needs (which resets state when timer hits 0)
+                if character.is_eating and character.target_facility:
+                    # Check if target is a farm block
+                    if (hasattr(character.target_facility, 'block_type') and 
+                        character.target_facility.block_type == BlockType.FARM):
+                        # Check if eating animation is done (timer will be decremented by update_needs)
+                        # Store reference before update_needs potentially resets it
+                        farm_to_remove = character.target_facility
+                        timer_before = character.action_timer
+                        
+                        # Update needs (this will decrement the timer)
+                        character.update_needs(delta_time)
+                        
+                        # Check if timer just finished (was > 0, now <= 0)
+                        if timer_before > 0 and character.action_timer <= 0:
+                            # Completely destroy the farm block
+                            if farm_to_remove in self.world.placed_blocks:
+                                self.world.placed_blocks.remove(farm_to_remove)
+                            # Also try removing by position to be sure
+                            self.world.remove_block(farm_to_remove.x, farm_to_remove.y)
+                            # Restore food level
+                            character.food_level = min(100, character.food_level + 30)
+                            character.is_eating = False
+                            character.target_facility = None
+                            continue
+                        # Still eating - don't move
+                        continue
+                
+                # Update needs for non-farm eating
                 character.update_needs(delta_time)
                 
                 # Handle current action (eating, drinking, sleeping)
+                # Note: Farm eating is handled above, so skip if already handled
+                if character.is_eating and character.target_facility and hasattr(character.target_facility, 'block_type') and character.target_facility.block_type == BlockType.FARM:
+                    continue  # Farm eating already handled above
                 if character.is_eating or character.is_drinking:
                     continue  # Don't move while eating/drinking
                 if character.is_sleeping:
@@ -128,8 +159,36 @@ class GameView(QWidget):
                 target_y = None
                 should_seek_facility = False
                 
-                # Check if needs food
-                if character.food_level < 30:
+                # Always check for harvestable farms (carrots) - rabbits eat them regardless of hunger
+                harvestable_farm = self.world.find_nearest_harvestable_farm(character.x, character.y, 500)
+                if harvestable_farm:
+                    farm_center_x = harvestable_farm.x + harvestable_farm.size // 2
+                    farm_center_y = harvestable_farm.y + harvestable_farm.size // 2
+                    dx = farm_center_x - character.x
+                    dy = farm_center_y - character.y
+                    distance = (dx**2 + dy**2)**0.5
+                    
+                    # Check if close enough to eat (within 30 pixels)
+                    if distance < 30:
+                        # Start eating animation (3 seconds for farms)
+                        character.start_eating(duration=3.0)
+                        character.target_facility = harvestable_farm
+                        # Reset random movement
+                        character.random_target_x = None
+                        character.random_target_y = None
+                        character.is_waiting = False
+                    else:
+                        # Move towards the farm
+                        target_x = farm_center_x
+                        target_y = farm_center_y
+                        should_seek_facility = True
+                        # Reset random movement
+                        character.random_target_x = None
+                        character.random_target_y = None
+                        character.is_waiting = False
+                # Check if needs food (only if no harvestable farms available)
+                elif character.food_level < 30:
+                    # No harvestable farms, check for food blocks
                     food_block = self.world.find_nearest_food_block(character.x, character.y)
                     if food_block:
                         if self.world.is_at_facility(character, food_block):

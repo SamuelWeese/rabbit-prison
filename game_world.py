@@ -527,6 +527,23 @@ class GameWorld:
                 if distance <= max_distance:
                     return block
         return None
+    
+    def find_nearest_harvestable_farm(self, x, y, max_distance=500):
+        """Find the nearest harvestable farm for rabbits"""
+        nearest = None
+        min_distance = max_distance
+        
+        for block in self.placed_blocks:
+            if block.block_type == BlockType.FARM and block.is_harvestable():
+                block_center_x = block.x + block.size // 2
+                block_center_y = block.y + block.size // 2
+                dx = block_center_x - x
+                dy = block_center_y - y
+                distance = (dx**2 + dy**2)**0.5
+                if distance < min_distance:
+                    min_distance = distance
+                    nearest = block
+        return nearest
             
     def _draw_grid(self, painter: QPainter):
         """Draw a grid on the floor for reference"""
