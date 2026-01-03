@@ -263,12 +263,18 @@ class GameWorld:
             if bullet in self.bullets:
                 self.bullets.remove(bullet)
                 
-    def place_block(self, x, y, block_type: BlockType):
+    def place_block(self, x, y, block_type: BlockType, warden=None):
         """Place a block at the given position (snapped to grid)"""
         # Snap to grid
         block_size = 50
         snapped_x = (x // block_size) * block_size
         snapped_y = (y // block_size) * block_size
+        
+        # Check if placing a farm - requires 1 carrot
+        if block_type == BlockType.FARM:
+            if not warden or warden.carrots < 1:
+                return False  # Not enough carrots
+            warden.carrots -= 1  # Deduct 1 carrot
         
         # Check if position is already occupied by another block
         new_block_rect = QRectF(snapped_x, snapped_y, block_size, block_size)

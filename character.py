@@ -31,7 +31,7 @@ class Character:
         
         # Resources (only for warden)
         if character_type == CharacterType.WARDEN:
-            self.carrots = 0
+            self.carrots = 10  # Start with 10 carrots
             self.money = 0
             self.rabbit_meat = 0
             self.rabbit_poop = 0

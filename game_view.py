@@ -272,14 +272,24 @@ class GameView(QWidget):
         
     def keyPressEvent(self, event: QKeyEvent):
         """Handle key press events"""
-        # Handle spacebar for opening/closing doors
+        # Handle spacebar for opening/closing doors and harvesting farms
         if event.key() == Qt.Key_Space:
             warden = self.world.get_warden()
             if warden:
-                # Check for nearby door (works with any item or empty hands)
-                nearby_door = self.world.get_nearby_door(warden.x, warden.y)
-                if nearby_door:
-                    self.world.toggle_door(nearby_door.x, nearby_door.y)
+                # Check for nearby harvestable farm first
+                nearby_farm = self.world.get_nearby_harvestable_farm(warden.x, warden.y, 50)
+                if nearby_farm:
+                    # Harvest the farm
+                    if nearby_farm.harvest():
+                        import random
+                        # Give random amount of carrots (1-5)
+                        carrots_gained = random.randint(1, 5)
+                        warden.carrots += carrots_gained
+                else:
+                    # Check for nearby door (works with any item or empty hands)
+                    nearby_door = self.world.get_nearby_door(warden.x, warden.y)
+                    if nearby_door:
+                        self.world.toggle_door(nearby_door.x, nearby_door.y)
             event.accept()
             return
         
@@ -354,20 +364,14 @@ class GameView(QWidget):
         
         if event.button() == Qt.LeftButton:
             if warden:
-                # Check if clicking on a harvestable farm (prioritize harvesting over placing blocks)
-                nearby_farm = self.world.get_nearby_harvestable_farm(warden.x, warden.y, 50)
-                if nearby_farm:
-                    # Harvest the farm
-                    if nearby_farm.harvest():
-                        warden.carrots += 3  # Give 3 carrots per harvest
-                elif warden.held_item:
+                if warden.held_item:
                     # Check if holding a block item
                     if hasattr(warden.held_item, 'get_block_type'):
                         # Place block
                         world_x = self.mouse_x + self.camera_x
                         world_y = self.mouse_y + self.camera_y
                         block_type = warden.held_item.get_block_type()
-                        self.world.place_block(world_x, world_y, block_type)
+                        self.world.place_block(world_x, world_y, block_type, warden)
                     else:
                         # Use regular item (shoot, etc.)
                         bullet = warden.use_item()
