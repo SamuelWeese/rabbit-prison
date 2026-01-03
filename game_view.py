@@ -176,8 +176,91 @@ class GameView(QWidget):
                 if character.is_sleeping:
                     # Rabbits stay still while sleeping until fully rested
                     continue  # Don't move while sleeping
+                # Handle breeding mode - rabbit seeks a partner
                 if character.is_breeding:
-                    continue  # Don't move while breeding
+                    # Find a breeding partner if we don't have one
+                    if character.breeding_partner is None:
+                        # Look for another rabbit that is also in breeding mode
+                        closest_partner = None
+                        closest_distance = float('inf')
+                        for other_rabbit in self.world.characters:
+                            if (isinstance(other_rabbit, Rabbit) and 
+                                other_rabbit != character and
+                                other_rabbit.is_breeding):
+                                # Check if this rabbit is also looking for a partner
+                                # (not already paired with someone else)
+                                if other_rabbit.breeding_partner is None or other_rabbit.breeding_partner == character:
+                                    dx = other_rabbit.x - character.x
+                                    dy = other_rabbit.y - character.y
+                                    distance = math.sqrt(dx**2 + dy**2)
+                                    if distance < closest_distance:
+                                        closest_distance = distance
+                                        closest_partner = other_rabbit
+                        
+                        if closest_partner:
+                            character.breeding_partner = closest_partner
+                            # Make sure the partner also knows about us (bidirectional pairing)
+                            if closest_partner.breeding_partner != character:
+                                closest_partner.breeding_partner = character
+                    
+                    # If we have a partner, move towards them
+                    if character.breeding_partner:
+                        # Check if partner is still valid (still in breeding mode and exists)
+                        if (character.breeding_partner not in self.world.characters or
+                            not character.breeding_partner.is_breeding):
+                            # Partner left breeding mode or was removed, reset
+                            character.breeding_partner = None
+                            continue
+                        
+                        # Move towards partner
+                        partner_x = character.breeding_partner.x
+                        partner_y = character.breeding_partner.y
+                        dx = partner_x - character.x
+                        dy = partner_y - character.y
+                        distance = math.sqrt(dx**2 + dy**2)
+                        
+                        # If close enough (within 30 pixels), complete breeding
+                        if distance < 30:
+                            # Both rabbits complete breeding
+                            character.is_breeding = False
+                            character.breeding_cooldown = 30.0
+                            if character.breeding_partner:
+                                character.breeding_partner.is_breeding = False
+                                character.breeding_partner.breeding_cooldown = 30.0
+                                character.breeding_partner.breeding_partner = None
+                            character.breeding_partner = None
+                            
+                            # Spawn new rabbit between the two parents
+                            new_rabbit_x = (character.x + partner_x) / 2
+                            new_rabbit_y = (character.y + partner_y) / 2
+                            # Add small random offset
+                            new_rabbit_x += random.uniform(-20, 20)
+                            new_rabbit_y += random.uniform(-20, 20)
+                            # Clamp to world bounds
+                            new_rabbit_x = max(50, min(new_rabbit_x, world_width - 50))
+                            new_rabbit_y = max(50, min(new_rabbit_y, world_height - 50))
+                            
+                            # Create new rabbit
+                            new_rabbit = Rabbit(new_rabbit_x, new_rabbit_y)
+                            new_rabbit.food_level = random.uniform(50, 100)
+                            new_rabbit.water_level = random.uniform(50, 100)
+                            new_rabbit.sleep_level = random.uniform(50, 100)
+                            new_rabbit.health = 100
+                            self.world.characters.append(new_rabbit)
+                            
+                            # Reset random movement
+                            character.random_target_x = None
+                            character.random_target_y = None
+                            character.is_waiting = False
+                            continue
+                        else:
+                            # Move towards partner
+                            character.move_towards(partner_x, partner_y, self.world)
+                            continue
+                    else:
+                        # No partner found yet, keep looking (stay in breeding mode)
+                        # Could add some random movement here while searching
+                        continue
                 
                 # Check breeding conditions FIRST (before other actions)
                 # Full health and 75%+ food, no cooldown, not sleeping
@@ -185,28 +268,9 @@ class GameView(QWidget):
                     character.food_level >= 75 and 
                     character.breeding_cooldown <= 0 and
                     character.sleep_level >= 20):
-                    # Random chance to breed (5% chance per frame when conditions met)
+                    # Random chance to start breeding (5% chance per frame when conditions met)
                     if random.random() < 0.05:
                         character.start_breeding()
-                        # Create a new rabbit immediately
-                        offset_x = random.uniform(-30, 30)
-                        offset_y = random.uniform(-30, 30)
-                        new_rabbit_x = character.x + offset_x
-                        new_rabbit_y = character.y + offset_y
-                        # Clamp to world bounds
-                        new_rabbit_x = max(50, min(new_rabbit_x, world_width - 50))
-                        new_rabbit_y = max(50, min(new_rabbit_y, world_height - 50))
-                        # Create new rabbit
-                        new_rabbit = Rabbit(new_rabbit_x, new_rabbit_y)
-                        new_rabbit.food_level = random.uniform(50, 100)
-                        new_rabbit.water_level = random.uniform(50, 100)
-                        new_rabbit.sleep_level = random.uniform(50, 100)
-                        new_rabbit.health = 100
-                        self.world.characters.append(new_rabbit)
-                        # Reset random movement
-                        character.random_target_x = None
-                        character.random_target_y = None
-                        character.is_waiting = False
                         continue
                 
                 # Check needs and seek facilities

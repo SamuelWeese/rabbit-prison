@@ -35,6 +35,7 @@ class Rabbit(Character):
         self.is_breeding = False
         self.breeding_timer = 0.0
         self.breeding_cooldown = 0.0  # Cooldown between breeding attempts
+        self.breeding_partner = None  # Target rabbit to find for breeding
     
     def update_needs(self, delta_time=0.016):
         """Update needs over time"""
@@ -75,10 +76,7 @@ class Rabbit(Character):
                         # Continue sleeping - reset timer
                         sleep_needed = 100 - self.sleep_level
                         self.action_timer = sleep_needed / 20.0
-                elif self.is_breeding:
-                    self.is_breeding = False
-                    # Set cooldown (30 seconds before can breed again)
-                    self.breeding_cooldown = 30.0
+                # Breeding is handled differently - no timer, stays until partner found
                 if not self.is_sleeping:
                     self.target_facility = None
         
@@ -115,19 +113,22 @@ class Rabbit(Character):
         # Sleep restores at 20 per second, so calculate time needed
         self.action_timer = max(duration, sleep_needed / 20.0)
     
-    def start_breeding(self, duration=3.0):
-        """Start breeding animation"""
+    def start_breeding(self):
+        """Start breeding mode - rabbit will seek a partner"""
         self.is_eating = False
         self.is_drinking = False
         self.is_sleeping = False
         self.is_breeding = True
-        self.action_timer = duration
-        self.breeding_timer = duration
+        self.breeding_partner = None  # Will be set when finding a partner
+        # No timer - stays in breeding mode until partner found
     
     def move_towards(self, target_x, target_y, world):
         """Move towards a target, avoiding collisions - moves directly in 2D space"""
         # Don't move if sleeping - rabbits stay still while sleeping
         if self.is_sleeping:
+            return
+        # Don't move if eating/drinking (but can move while breeding to find partner)
+        if self.is_eating or self.is_drinking:
             return
         
         dx = target_x - self.x
