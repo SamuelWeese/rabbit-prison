@@ -57,11 +57,12 @@ class GameView(QWidget):
         key1 = Key()
         self.hotbar.set_slot(1, key1)
         
-        # Add block items to hotbar (concrete wall, door, food, water)
+        # Add block items to hotbar (concrete wall, door, food, water, farm)
         self.hotbar.set_slot(2, BlockItem(BlockType.WALL))
         self.hotbar.set_slot(3, BlockItem(BlockType.DOOR))
         self.hotbar.set_slot(4, BlockItem(BlockType.FOOD))
         self.hotbar.set_slot(5, BlockItem(BlockType.WATER))
+        self.hotbar.set_slot(6, BlockItem(BlockType.FARM))
         
     def update_game(self):
         """Update game state and camera position"""
@@ -101,6 +102,10 @@ class GameView(QWidget):
         
         # Update bullets
         self.world.update_bullets()
+        
+        # Update farm growth
+        delta_time = 0.016  # ~60 FPS
+        self.world.update_farms(delta_time)
         
         # Update rabbit AI - handle needs and movement
         delta_time = 0.016  # ~60 FPS

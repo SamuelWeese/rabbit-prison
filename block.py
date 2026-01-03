@@ -12,6 +12,7 @@ class BlockType(Enum):
     DOOR = "door"
     FOOD = "food"
     WATER = "water"
+    FARM = "farm"  # Farm plot that grows food
 
 
 class Block:
@@ -22,6 +23,12 @@ class Block:
         self.block_type = block_type
         self.size = 50  # Block size in pixels
         self.is_open = False  # For doors - whether they're open
+        
+        # Farm growth system
+        if block_type == BlockType.FARM:
+            self.growth_stage = 0  # 0 = empty, 1 = planted, 2 = growing, 3 = ready
+            self.growth_timer = 0.0
+            self.growth_time = 10.0  # Time in seconds to fully grow
         
     def get_rect(self):
         """Get bounding rectangle"""
@@ -110,6 +117,93 @@ class Block:
             painter.setPen(QPen(QColor(120, 120, 120), 2))
             painter.setBrush(QBrush(QColor(140, 140, 140)))
             painter.drawRect(int(self.x + self.size // 2 - 3), int(self.y + 2), 6, 6)
+            
+        elif self.block_type == BlockType.FARM:
+            # Draw farm plot with growth stages
+            # Soil/dirt base
+            painter.setPen(QPen(QColor(101, 67, 33), 2))
+            painter.setBrush(QBrush(QColor(139, 90, 43)))
+            painter.drawRect(int(self.x), int(self.y), self.size, self.size)
+            
+            # Draw soil texture (lines)
+            painter.setPen(QPen(QColor(101, 67, 33), 1))
+            for i in range(3):
+                painter.drawLine(int(self.x + i * 15), int(self.y), 
+                               int(self.x + i * 15), int(self.y + self.size))
+            
+            # Draw growth based on stage
+            if self.growth_stage == 0:
+                # Empty plot - just show soil
+                pass
+            elif self.growth_stage == 1:
+                # Planted - small seed/sprout
+                painter.setPen(QPen(QColor(50, 150, 50), 1))
+                painter.setBrush(QBrush(QColor(100, 200, 100)))
+                # Small sprout
+                painter.drawEllipse(int(self.x + self.size // 2 - 2), 
+                                  int(self.y + self.size - 8), 4, 4)
+            elif self.growth_stage == 2:
+                # Growing - medium plant
+                painter.setPen(QPen(QColor(50, 150, 50), 2))
+                painter.setBrush(QBrush(QColor(100, 200, 100)))
+                # Stem
+                painter.drawRect(int(self.x + self.size // 2 - 1), 
+                               int(self.y + self.size - 15), 2, 10)
+                # Leaves
+                painter.drawEllipse(int(self.x + self.size // 2 - 4), 
+                                  int(self.y + self.size - 12), 8, 6)
+            elif self.growth_stage == 3:
+                # Ready to harvest - full plant with food
+                painter.setPen(QPen(QColor(50, 150, 50), 2))
+                painter.setBrush(QBrush(QColor(100, 200, 100)))
+                # Stem
+                painter.drawRect(int(self.x + self.size // 2 - 1), 
+                               int(self.y + self.size - 20), 2, 15)
+                # Large leaves
+                painter.drawEllipse(int(self.x + self.size // 2 - 6), 
+                                  int(self.y + self.size - 18), 12, 8)
+                # Food items (carrots/vegetables)
+                painter.setPen(QPen(QColor(255, 150, 0), 1))
+                painter.setBrush(QBrush(QColor(255, 200, 0)))
+                # Carrot 1
+                painter.drawEllipse(int(self.x + self.size // 2 - 8), 
+                                  int(self.y + self.size - 8), 6, 8)
+                # Carrot 2
+                painter.drawEllipse(int(self.x + self.size // 2 + 2), 
+                                  int(self.y + self.size - 8), 6, 8)
+    
+    def update_growth(self, delta_time):
+        """Update farm growth over time"""
+        if self.block_type == BlockType.FARM:
+            if self.growth_stage == 0:
+                # Auto-plant when empty (after a short delay)
+                self.growth_timer += delta_time
+                if self.growth_timer >= 1.0:  # 1 second delay before auto-planting
+                    self.growth_stage = 1
+                    self.growth_timer = 0.0
+            elif self.growth_stage < 3:
+                # Grow over time
+                self.growth_timer += delta_time
+                growth_progress = self.growth_timer / self.growth_time
+                
+                if growth_progress < 0.33:
+                    self.growth_stage = 1  # Planted
+                elif growth_progress < 0.66:
+                    self.growth_stage = 2  # Growing
+                else:
+                    self.growth_stage = 3  # Ready
+    
+    def harvest(self):
+        """Harvest the farm - resets growth and returns True if harvestable"""
+        if self.block_type == BlockType.FARM and self.growth_stage == 3:
+            self.growth_stage = 0
+            self.growth_timer = 0.0
+            return True
+        return False
+    
+    def is_harvestable(self):
+        """Check if the farm is ready to harvest"""
+        return self.block_type == BlockType.FARM and self.growth_stage == 3
 
 
 class BlockItem:
@@ -158,6 +252,11 @@ class BlockItem:
         elif self.block_type == BlockType.WATER:
             painter.setPen(QPen(QColor(80, 150, 255), 1))
             painter.setBrush(QBrush(QColor(100, 180, 255)))
+            painter.drawRect(int(x - preview_size // 2), int(y - preview_size // 2), 
+                           preview_size, preview_size)
+        elif self.block_type == BlockType.FARM:
+            painter.setPen(QPen(QColor(101, 67, 33), 1))
+            painter.setBrush(QBrush(QColor(139, 90, 43)))
             painter.drawRect(int(x - preview_size // 2), int(y - preview_size // 2), 
                            preview_size, preview_size)
 

@@ -14,7 +14,8 @@ class Rabbit(Character):
         super().__init__(x, y, CharacterType.RABBIT)
         self.speed = 1.0  # Rabbits move slower
         
-        # Needs system
+        # Health and needs system
+        self.health = 100.0
         self.food_level = 100.0
         self.water_level = 100.0
         self.sleep_level = 100.0
@@ -202,34 +203,64 @@ class Rabbit(Character):
                     drop_x = int(center_x - 4 + i * 4)
                     painter.drawEllipse(drop_x, splash_y + i * 2, 3, 3)
         
-        # Draw need indicators above rabbit
+        # Draw health bar and need indicators above rabbit
         bar_width = 30
-        bar_height = 3
-        bar_spacing = 4
-        bar_y = int(center_y - self.size // 2 - 20)
+        bar_height = 4
+        bar_y = int(center_y - self.size // 2 - 30)
         bar_x = int(center_x - bar_width // 2)
         
-        # Food bar (red)
+        # Health bar (green/red based on health)
         painter.setPen(QPen(QColor(0, 0, 0), 1))
         painter.setBrush(QBrush(QColor(50, 50, 50)))
         painter.drawRect(bar_x, bar_y, bar_width, bar_height)
+        # Health color: green when high, red when low
+        health_ratio = self.health / 100.0
+        if health_ratio > 0.5:
+            health_color = QColor(int(255 * (1 - health_ratio) * 2), 255, 0)  # Green to yellow
+        else:
+            health_color = QColor(255, int(255 * health_ratio * 2), 0)  # Yellow to red
+        painter.setBrush(QBrush(health_color))
+        health_width = int(bar_width * health_ratio)
+        painter.drawRect(bar_x, bar_y, health_width, bar_height)
+        
+        # Draw need indicators as circles below health bar
+        circle_radius = 4
+        circle_spacing = 8
+        circle_y = bar_y + bar_height + 4
+        start_x = int(center_x - (circle_spacing * 2) / 2)
+        
+        # Food circle (red)
+        painter.setPen(QPen(QColor(0, 0, 0), 1))
+        painter.setBrush(QBrush(QColor(50, 50, 50)))
+        painter.drawEllipse(start_x - circle_radius, circle_y - circle_radius, 
+                          circle_radius * 2, circle_radius * 2)
+        # Fill based on food level
+        food_fill_radius = int(circle_radius * (self.food_level / 100.0))
         painter.setBrush(QBrush(QColor(255, 0, 0)))
-        food_width = int(bar_width * (self.food_level / 100.0))
-        painter.drawRect(bar_x, bar_y, food_width, bar_height)
+        painter.drawEllipse(start_x - food_fill_radius, circle_y - food_fill_radius,
+                          food_fill_radius * 2, food_fill_radius * 2)
         
-        # Water bar (blue)
-        bar_y += bar_spacing
+        # Water circle (blue)
+        water_x = start_x + circle_spacing
+        painter.setPen(QPen(QColor(0, 0, 0), 1))
         painter.setBrush(QBrush(QColor(50, 50, 50)))
-        painter.drawRect(bar_x, bar_y, bar_width, bar_height)
+        painter.drawEllipse(water_x - circle_radius, circle_y - circle_radius,
+                          circle_radius * 2, circle_radius * 2)
+        # Fill based on water level
+        water_fill_radius = int(circle_radius * (self.water_level / 100.0))
         painter.setBrush(QBrush(QColor(0, 100, 255)))
-        water_width = int(bar_width * (self.water_level / 100.0))
-        painter.drawRect(bar_x, bar_y, water_width, bar_height)
+        painter.drawEllipse(water_x - water_fill_radius, circle_y - water_fill_radius,
+                          water_fill_radius * 2, water_fill_radius * 2)
         
-        # Sleep bar (purple)
-        bar_y += bar_spacing
+        # Sleep circle (purple)
+        sleep_x = start_x + circle_spacing * 2
+        painter.setPen(QPen(QColor(0, 0, 0), 1))
         painter.setBrush(QBrush(QColor(50, 50, 50)))
-        painter.drawRect(bar_x, bar_y, bar_width, bar_height)
+        painter.drawEllipse(sleep_x - circle_radius, circle_y - circle_radius,
+                          circle_radius * 2, circle_radius * 2)
+        # Fill based on sleep level
+        sleep_fill_radius = int(circle_radius * (self.sleep_level / 100.0))
         painter.setBrush(QBrush(QColor(150, 50, 200)))
-        sleep_width = int(bar_width * (self.sleep_level / 100.0))
-        painter.drawRect(bar_x, bar_y, sleep_width, bar_height)
+        painter.drawEllipse(sleep_x - sleep_fill_radius, circle_y - sleep_fill_radius,
+                          sleep_fill_radius * 2, sleep_fill_radius * 2)
 

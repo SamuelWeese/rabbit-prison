@@ -142,12 +142,14 @@ class GameWorld:
             if test_rect.intersects(wall.rect):
                 return True
                 
-        # Check collision with placed blocks (doors don't block when open, food/water don't block)
+        # Check collision with placed blocks (doors don't block when open, food/water/farm don't block)
         for block in self.placed_blocks:
             if block.block_type == BlockType.DOOR and block.is_open:
                 continue  # Open doors don't block
-            if block.block_type == BlockType.FOOD or block.block_type == BlockType.WATER:
-                continue  # Food and water blocks don't block movement
+            if (block.block_type == BlockType.FOOD or 
+                block.block_type == BlockType.WATER or 
+                block.block_type == BlockType.FARM):
+                continue  # Food, water, and farm blocks don't block movement
             if test_rect.intersects(block.get_rect()):
                 return True
                 
@@ -160,6 +162,12 @@ class GameWorld:
             
         return False
         
+    def update_farms(self, delta_time):
+        """Update all farm blocks growth"""
+        for block in self.placed_blocks:
+            if block.block_type == BlockType.FARM:
+                block.update_growth(delta_time)
+    
     def draw(self, painter: QPainter):
         """Draw the entire world"""
         # Draw floor grid for reference
@@ -168,8 +176,16 @@ class GameWorld:
         # Draw walls
         for wall in self.walls:
             wall.draw(painter)
+        
+        # Draw non-blocking placed blocks (farms, food, water) before characters
+        # so characters appear on top when walking on them
+        for block in self.placed_blocks:
+            if (block.block_type == BlockType.FARM or 
+                block.block_type == BlockType.FOOD or 
+                block.block_type == BlockType.WATER):
+                block.draw(painter)
             
-        # Draw characters
+        # Draw characters (appear on top of non-blocking blocks)
         for character in self.characters:
             character.draw(painter)
             
@@ -184,9 +200,11 @@ class GameWorld:
             if bullet.active:
                 bullet.draw(painter)
                 
-        # Draw placed blocks
+        # Draw blocking placed blocks (walls, doors) after characters
         for block in self.placed_blocks:
-            block.draw(painter)
+            if (block.block_type == BlockType.WALL or 
+                block.block_type == BlockType.DOOR):
+                block.draw(painter)
                 
     def update_bullets(self):
         """Update all bullets"""
@@ -304,6 +322,10 @@ class GameWorld:
                         continue
                     if placed_block.block_type == BlockType.DOOR and placed_block.is_open:
                         continue  # Open doors don't block
+                    if (placed_block.block_type == BlockType.FOOD or 
+                        placed_block.block_type == BlockType.WATER or 
+                        placed_block.block_type == BlockType.FARM):
+                        continue  # Food, water, and farm blocks don't block
                     if test_rect.intersects(placed_block.get_rect()):
                         collides = True
                         break

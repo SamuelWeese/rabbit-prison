@@ -102,6 +102,14 @@ class Hotbar:
                         painter.setPen(QPen(QColor(80, 150, 255), 1))
                         painter.setBrush(QBrush(QColor(100, 180, 255)))
                         painter.drawRect(icon_x, icon_y, icon_size, icon_size)
+                    elif block_type == BlockType.FARM:
+                        painter.setPen(QPen(QColor(101, 67, 33), 1))
+                        painter.setBrush(QBrush(QColor(139, 90, 43)))
+                        painter.drawRect(icon_x, icon_y, icon_size, icon_size)
+                        # Draw small plant on top
+                        painter.setPen(QPen(QColor(50, 150, 50), 1))
+                        painter.setBrush(QBrush(QColor(100, 200, 100)))
+                        painter.drawEllipse(icon_x + icon_size // 2 - 3, icon_y + icon_size // 2, 6, 6)
                 elif hasattr(item, 'item_type'):
                     if item.item_type == ItemType.SHOTGUN:
                         # Draw shotgun icon (simplified)
