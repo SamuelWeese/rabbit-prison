@@ -29,6 +29,13 @@ class Character:
         self.animation_frame = 0
         self.frame_count = 0
         
+        # Resources (only for warden)
+        if character_type == CharacterType.WARDEN:
+            self.carrots = 0
+            self.money = 0
+            self.rabbit_meat = 0
+            self.rabbit_poop = 0
+        
     def move(self, dx, dy):
         """Move the character by the given delta"""
         self.x += dx

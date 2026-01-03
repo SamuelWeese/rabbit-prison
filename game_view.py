@@ -336,6 +336,9 @@ class GameView(QWidget):
         # Reset translation for UI elements
         painter.resetTransform()
         
+        # Draw resources UI (top left)
+        self._draw_resources(painter)
+        
         # Draw hotbar
         self.hotbar.draw(painter, self.width(), self.height())
         
@@ -350,19 +353,26 @@ class GameView(QWidget):
         warden = self.world.get_warden()
         
         if event.button() == Qt.LeftButton:
-            if warden and warden.held_item:
-                # Check if holding a block item
-                if hasattr(warden.held_item, 'get_block_type'):
-                    # Place block
-                    world_x = self.mouse_x + self.camera_x
-                    world_y = self.mouse_y + self.camera_y
-                    block_type = warden.held_item.get_block_type()
-                    self.world.place_block(world_x, world_y, block_type)
-                else:
-                    # Use regular item (shoot, etc.)
-                    bullet = warden.use_item()
-                    if bullet:
-                        self.world.bullets.append(bullet)
+            if warden:
+                # Check if clicking on a harvestable farm (prioritize harvesting over placing blocks)
+                nearby_farm = self.world.get_nearby_harvestable_farm(warden.x, warden.y, 50)
+                if nearby_farm:
+                    # Harvest the farm
+                    if nearby_farm.harvest():
+                        warden.carrots += 3  # Give 3 carrots per harvest
+                elif warden.held_item:
+                    # Check if holding a block item
+                    if hasattr(warden.held_item, 'get_block_type'):
+                        # Place block
+                        world_x = self.mouse_x + self.camera_x
+                        world_y = self.mouse_y + self.camera_y
+                        block_type = warden.held_item.get_block_type()
+                        self.world.place_block(world_x, world_y, block_type)
+                    else:
+                        # Use regular item (shoot, etc.)
+                        bullet = warden.use_item()
+                        if bullet:
+                            self.world.bullets.append(bullet)
         elif event.button() == Qt.RightButton:
             # Right click to remove blocks
             world_x = self.mouse_x + self.camera_x
@@ -387,4 +397,47 @@ class GameView(QWidget):
         if warden:
             warden.equip_item(selected_item)  # Can be None to clear hands
         event.accept()
+    
+    def _draw_resources(self, painter: QPainter):
+        """Draw resource display (carrots, money, rabbit meat, rabbit poop) vertically in top left"""
+        warden = self.world.get_warden()
+        if not warden:
+            return
+        
+        # Background panel
+        panel_width = 100
+        panel_height = 110
+        panel_x = 10
+        panel_y = 10
+        
+        painter.setPen(QPen(QColor(0, 0, 0), 2))
+        painter.setBrush(QBrush(QColor(50, 50, 50, 200)))
+        painter.drawRoundedRect(panel_x, panel_y, panel_width, panel_height, 5, 5)
+        
+        # Set font and color for text
+        painter.setPen(QPen(QColor(255, 255, 255), 2))
+        font = painter.font()
+        font.setPointSize(16)
+        painter.setFont(font)
+        
+        # Vertical spacing between resources
+        line_height = 25
+        start_x = panel_x + 10
+        start_y = panel_y + 20
+        
+        # Draw carrots
+        painter.drawText(start_x, start_y, "🥕")
+        painter.drawText(start_x + 25, start_y, f"{warden.carrots}")
+        
+        # Draw money
+        painter.drawText(start_x, start_y + line_height, "💰")
+        painter.drawText(start_x + 25, start_y + line_height, f"{warden.money}")
+        
+        # Draw rabbit meat
+        painter.drawText(start_x, start_y + line_height * 2, "🥩")
+        painter.drawText(start_x + 25, start_y + line_height * 2, f"{warden.rabbit_meat}")
+        
+        # Draw rabbit poop
+        painter.drawText(start_x, start_y + line_height * 3, "💩")
+        painter.drawText(start_x + 25, start_y + line_height * 3, f"{warden.rabbit_poop}")
 
