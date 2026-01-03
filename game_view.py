@@ -328,6 +328,11 @@ class GameView(QWidget):
         # Draw world
         self.world.draw(painter)
         
+        # Draw interaction highlights (after world, before UI)
+        warden = self.world.get_warden()
+        if warden:
+            self.world.draw_interaction_highlights(painter, warden)
+        
         # Reset translation for UI elements
         painter.resetTransform()
         

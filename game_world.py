@@ -205,6 +205,43 @@ class GameWorld:
             if (block.block_type == BlockType.WALL or 
                 block.block_type == BlockType.DOOR):
                 block.draw(painter)
+    
+    def draw_interaction_highlights(self, painter: QPainter, warden):
+        """Draw highlights around interactive objects near the warden"""
+        if not warden:
+            return
+        
+        interactive_objects = self.get_interactive_objects_near(warden.x, warden.y, 50)
+        
+        for obj_type, obj in interactive_objects:
+            # Draw highlight outline
+            painter.setPen(QPen(QColor(255, 255, 0), 3))  # Yellow highlight
+            painter.setBrush(QBrush(QColor(0, 0, 0, 0)))  # No fill
+            
+            if obj_type == 'door':
+                # Highlight door block
+                block = obj
+                highlight_margin = 3
+                painter.drawRect(int(block.x - highlight_margin), 
+                               int(block.y - highlight_margin),
+                               block.size + highlight_margin * 2,
+                               block.size + highlight_margin * 2)
+            elif obj_type == 'item':
+                # Highlight item (small circle)
+                item = obj
+                highlight_radius = 15
+                painter.drawEllipse(int(item.x - highlight_radius),
+                                  int(item.y - highlight_radius),
+                                  highlight_radius * 2,
+                                  highlight_radius * 2)
+            elif obj_type == 'farm':
+                # Highlight harvestable farm
+                block = obj
+                highlight_margin = 3
+                painter.drawRect(int(block.x - highlight_margin),
+                               int(block.y - highlight_margin),
+                               block.size + highlight_margin * 2,
+                               block.size + highlight_margin * 2)
                 
     def update_bullets(self):
         """Update all bullets"""
@@ -440,6 +477,37 @@ class GameWorld:
         dy = facility_y - character.y
         distance = (dx**2 + dy**2)**0.5
         return distance < 30  # Close enough to interact
+    
+    def get_interactive_objects_near(self, x, y, max_distance=50):
+        """Get all interactive objects near a position"""
+        interactive = []
+        
+        # Check for nearby doors
+        door = self.get_nearby_door(x, y, max_distance)
+        if door:
+            interactive.append(('door', door))
+        
+        # Check for nearby items on ground
+        for item in self.items:
+            if item.held_by is None:
+                dx = item.x - x
+                dy = item.y - y
+                distance = (dx**2 + dy**2)**0.5
+                if distance <= max_distance:
+                    interactive.append(('item', item))
+        
+        # Check for harvestable farms
+        for block in self.placed_blocks:
+            if block.block_type == BlockType.FARM and block.is_harvestable():
+                block_center_x = block.x + block.size // 2
+                block_center_y = block.y + block.size // 2
+                dx = block_center_x - x
+                dy = block_center_y - y
+                distance = (dx**2 + dy**2)**0.5
+                if distance <= max_distance:
+                    interactive.append(('farm', block))
+        
+        return interactive
             
     def _draw_grid(self, painter: QPainter):
         """Draw a grid on the floor for reference"""
