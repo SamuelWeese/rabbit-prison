@@ -6,6 +6,7 @@ from PyQt5.QtCore import QRectF, QPointF
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush
 from character import Character, CharacterType
 import math
+from assets import SpriteCache
 
 
 class Rabbit(Character):
@@ -13,6 +14,7 @@ class Rabbit(Character):
     def __init__(self, x, y):
         super().__init__(x, y, CharacterType.RABBIT)
         self.speed = 1.0  # Rabbits move slower
+        self.size = 50 
         
         # Health and needs system
         self.health = 100.0
@@ -172,45 +174,11 @@ class Rabbit(Character):
         
         # Draw sleeping rabbit (flattened)
         if self.is_sleeping:
-            # Flattened sleeping position
-            painter.setPen(QPen(QColor(139, 69, 19), 2))
-            painter.setBrush(QBrush(QColor(255, 220, 177)))
-            # Draw as wider, flatter ellipse
-            painter.drawEllipse(int(center_x - self.size // 2), 
-                              int(center_y - self.size // 4), 
-                              self.size, self.size // 2)
-            # Draw closed eyes
-            painter.setPen(QPen(QColor(0, 0, 0), 1))
-            painter.drawLine(int(center_x - 4), int(center_y - 2), 
-                           int(center_x - 2), int(center_y - 2))
-            painter.drawLine(int(center_x + 2), int(center_y - 2), 
-                           int(center_x + 4), int(center_y - 2))
-            # Draw Z's above head (sleeping)
-            painter.setPen(QPen(QColor(100, 100, 100), 2))
-            z_y = int(center_y - self.size // 2 - 8)
-            painter.drawLine(int(center_x - 3), z_y, int(center_x + 3), z_y)
-            painter.drawLine(int(center_x + 3), z_y, int(center_x - 3), z_y + 4)
-            painter.drawLine(int(center_x - 3), z_y + 4, int(center_x + 3), z_y + 4)
+            sprite = SpriteCache.get("rabbit_sleep")
+            painter.drawPixmap(int(self.x - self.size // 2), int(self.y - self.size // 3), self.size, self.size, sprite)
         else:
-            # Normal standing rabbit
-            painter.setPen(QPen(QColor(139, 69, 19), 2))
-            painter.setBrush(QBrush(QColor(255, 220, 177)))
-            painter.drawEllipse(int(center_x - self.size // 2), 
-                              int(center_y - self.size // 2 + anim_offset_y), 
-                              self.size, self.size)
-            
-            # Draw ears
-            ear_size = 6
-            painter.setBrush(QBrush(QColor(139, 69, 19)))
-            # Left ear
-            painter.drawEllipse(int(center_x - self.size // 2 - 2), 
-                              int(center_y - self.size // 2 - 4 + anim_offset_y), 
-                              ear_size, ear_size * 2)
-            # Right ear
-            painter.drawEllipse(int(center_x + self.size // 2 - 4), 
-                              int(center_y - self.size // 2 - 4 + anim_offset_y), 
-                              ear_size, ear_size * 2)
-            
+            sprite = SpriteCache.get("rabbit_default")
+            painter.drawPixmap(int(self.x - self.size // 2), int(self.y - self.size // 2), self.size, self.size, sprite)
             # Draw action indicators
             if self.is_breeding:
                 # Draw hearts above head
