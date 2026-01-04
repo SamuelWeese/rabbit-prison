@@ -178,26 +178,9 @@ class Rabbit(Character):
             painter.drawPixmap(int(self.x - self.size // 2), int(self.y - self.size // 3), self.size, self.size, sprite)
         else:
             sprite = SpriteCache.get("rabbit_default")
-            painter.drawPixmap(int(self.x - self.size // 2), int(self.y - self.size // 2), self.size, self.size, sprite)
             # Draw action indicators
             if self.is_breeding:
-                # Draw hearts above head
-                heart_y = int(center_y - self.size // 2 - 15 + anim_offset_y)
-                painter.setPen(QPen(QColor(255, 100, 150), 1))
-                painter.setBrush(QBrush(QColor(255, 150, 200)))
-                # Draw two hearts
-                for i in range(2):
-                    heart_x = int(center_x - 8 + i * 8)
-                    # Simple heart shape (two circles and a triangle)
-                    painter.drawEllipse(heart_x - 3, heart_y, 4, 4)
-                    painter.drawEllipse(heart_x + 1, heart_y, 4, 4)
-                    # Triangle bottom
-                    points = [
-                        QPointF(heart_x - 3, heart_y + 2),
-                        QPointF(heart_x + 5, heart_y + 2),
-                        QPointF(heart_x + 1, heart_y + 6)
-                    ]
-                    painter.drawPolygon(points)
+                sprite = SpriteCache.get("rabbit_rizz")
             elif self.is_eating:
                 # Draw food icon above head
                 food_y = int(center_y - self.size // 2 - 12 + anim_offset_y)
@@ -212,7 +195,9 @@ class Rabbit(Character):
                 for i in range(3):
                     drop_x = int(center_x - 4 + i * 4)
                     painter.drawEllipse(drop_x, splash_y + i * 2, 3, 3)
-        
+
+            painter.drawPixmap(int(self.x - self.size // 2), int(self.y - self.size // 2), self.size, self.size, sprite)
+
         # Draw health bar and need indicators above rabbit
         bar_width = 30
         bar_height = 4

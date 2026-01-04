@@ -23,6 +23,7 @@ class SpriteCache:
         SpriteCache._sprites["rabbit_standing"] = QPixmap("assets/rabbit_standing.png")
         SpriteCache._sprites["rabbit_hop"] = QPixmap("assets/rabbit_hop.png")
         SpriteCache._sprites["rabbit_jump"] = QPixmap("assets/rabbit_jump.png")
+        SpriteCache._sprites["rabbit_rizz"] = QPixmap("assets/rabbit_rizz.png")
 
 
     @staticmethod

@@ -134,6 +134,10 @@ class GameView(QWidget):
         world_width, world_height = self.world.get_size()
         
         for character in self.world.characters:
+            # All of this should eventually be moved to rabbit.py
+            # Call something like 
+            # if isinstance(character, Rabbit):
+            #    character.update()
             if isinstance(character, Rabbit):
                 # Check for farm destruction BEFORE update_needs (which resets state when timer hits 0)
                 if character.is_eating and character.target_facility:
