@@ -233,13 +233,6 @@ class GameView(QWidget):
                             # Spawn new rabbit between the two parents
                             new_rabbit_x = (character.x + partner_x) / 2
                             new_rabbit_y = (character.y + partner_y) / 2
-                            # Add small random offset
-                            new_rabbit_x += random.uniform(-20, 20)
-                            new_rabbit_y += random.uniform(-20, 20)
-                            # Clamp to world bounds
-                            new_rabbit_x = max(50, min(new_rabbit_x, world_width - 50))
-                            new_rabbit_y = max(50, min(new_rabbit_y, world_height - 50))
-                            
                             # Create new rabbit
                             new_rabbit = Rabbit(new_rabbit_x, new_rabbit_y)
                             new_rabbit.food_level = random.uniform(50, 100)
