@@ -181,6 +181,8 @@ class GameView(QWidget):
                     # Rabbits stay still while sleeping until fully rested
                     continue  # Don't move while sleeping
                 # Handle breeding mode - rabbit seeks a partner
+                if character.is_preaching:
+                    continue
                 if character.is_breeding:
                     # Find a breeding partner if we don't have one
                     if character.breeding_partner is None:
@@ -232,13 +234,15 @@ class GameView(QWidget):
                                 character.breeding_partner.is_breeding = False
                                 character.breeding_partner.breeding_cooldown = 30.0
                                 character.breeding_partner.breeding_partner = None
+                                father_rabbit = character.breeding_partner
+                                mother_rabbit = character
                             character.breeding_partner = None
                             
                             # Spawn new rabbit between the two parents
                             new_rabbit_x = (character.x + partner_x) / 2
                             new_rabbit_y = (character.y + partner_y) / 2
                             # Create new rabbit
-                            new_rabbit = Rabbit(new_rabbit_x, new_rabbit_y)
+                            new_rabbit = Rabbit(new_rabbit_x, new_rabbit_y, mother_rabbit, father_rabbit)
                             new_rabbit.food_level = random.uniform(50, 100)
                             new_rabbit.water_level = random.uniform(50, 100)
                             new_rabbit.sleep_level = random.uniform(50, 100)
@@ -269,6 +273,10 @@ class GameView(QWidget):
                     if random.random() < 0.05:
                         character.start_breeding()
                         continue
+                if random.random() < character.communism * (1 - character.food_level / 50):
+                    print("start preachin")
+                    character.start_preaching()
+                    continue
                 
                 # Check needs and seek facilities
                 target_x = None

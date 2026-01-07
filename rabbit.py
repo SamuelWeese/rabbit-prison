@@ -5,13 +5,13 @@ Rabbit class for the game
 from PyQt5.QtCore import QRectF, QPointF
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush
 from character import Character, CharacterType
-import math
+import math, random
 from assets import SpriteCache
 
 
 class Rabbit(Character):
     """Represents a rabbit prisoner in the game"""
-    def __init__(self, x, y):
+    def __init__(self, x, y, mother_rabbit = None, father_rabbit = None, communist = False):
         super().__init__(x, y, CharacterType.RABBIT)
         self.speed = 1.0  # Rabbits move slower
         self.size = 50 
@@ -24,6 +24,8 @@ class Rabbit(Character):
         self.is_eating = False
         self.is_drinking = False
         self.is_sleeping = False
+        self.is_preaching = False
+        self.old_speed = self.speed
         self.action_timer = 0.0
         self.target_facility = None  # Food/water block being used
         
@@ -38,7 +40,23 @@ class Rabbit(Character):
         self.breeding_timer = 0.0
         self.breeding_cooldown = 0.0  # Cooldown between breeding attempts
         self.breeding_partner = None  # Target rabbit to find for breeding
-    
+
+        self.communism = False
+        self.kill_drive = 0
+
+        # Roll Genetics
+        baseline_communism = 0
+        if mother_rabbit == None or father_rabbit == None:
+            pass
+        else:
+            baseline_communism += mother_rabbit.communism * 50 + father_rabbit.communism * 50
+        
+        communism = random.uniform(baseline_communism, 100)
+        if communism > 70:
+            self.communism = True
+        if communist:
+            self.communism = True
+
     def update_needs(self, delta_time=0.016):
         """Update needs over time"""
         # Decrease needs if not being restored
@@ -66,6 +84,8 @@ class Rabbit(Character):
             self.action_timer -= delta_time
             if self.action_timer <= 0:
                 # Action complete
+                if self.is_preaching:
+                    self.is_preaching = False
                 if self.is_eating:
                     self.is_eating = False
                 elif self.is_drinking:
@@ -95,6 +115,7 @@ class Rabbit(Character):
         self.is_eating = True
         self.is_drinking = False
         self.is_sleeping = False
+        self.is_preaching = False
         self.action_timer = duration
     
     def start_drinking(self, duration=1.0):
@@ -102,6 +123,7 @@ class Rabbit(Character):
         self.is_eating = False
         self.is_drinking = True
         self.is_sleeping = False
+        self.is_preaching = False
         self.action_timer = duration
     
     def start_sleeping(self, duration=5.0):
@@ -110,6 +132,7 @@ class Rabbit(Character):
         self.is_drinking = False
         self.is_sleeping = True
         self.is_breeding = False
+        self.is_preaching = False
         # Calculate duration needed to restore sleep to 100
         sleep_needed = 100 - self.sleep_level
         # Sleep restores at 20 per second, so calculate time needed
@@ -121,9 +144,18 @@ class Rabbit(Character):
         self.is_drinking = False
         self.is_sleeping = False
         self.is_breeding = True
+        self.is_preaching = False
         self.breeding_partner = None  # Will be set when finding a partner
         # No timer - stays in breeding mode until partner found
     
+    def start_preaching(self, duration=1.0):
+        self.is_eating = False
+        self.is_drinking = False
+        self.is_sleeping = False
+        self.is_breeding = False
+        self.is_preaching = True
+        self.action_timer = duration
+
     def move_towards(self, target_x, target_y, world):
         """Move towards a target, avoiding collisions - moves directly in 2D space"""
         # Don't move if sleeping - rabbits stay still while sleeping
@@ -195,6 +227,12 @@ class Rabbit(Character):
                 for i in range(3):
                     drop_x = int(center_x - 4 + i * 4)
                     painter.drawEllipse(drop_x, splash_y + i * 2, 3, 3)
+            elif self.is_preaching:
+                # This needs to be updated to take a random one and fix with it => probably per self attr
+                speech = 0
+                sprite = SpriteCache.get(f"speech_bubble_{speech}")
+                painter.drawPixmap(int(self.x - self.size // 4), int(self.y - self.size * 1.2), 70, 70, sprite)
+                sprite = SpriteCache.get("rabbit_preach")
 
             painter.drawPixmap(int(self.x - self.size // 2), int(self.y - self.size // 2), self.size, self.size, sprite)
 

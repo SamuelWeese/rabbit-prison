@@ -96,6 +96,8 @@ class GameWorld:
         import random
         for x, y in rabbit_positions:
             rabbit = Rabbit(x, y)
+            if x == 370:
+                rabbit = Rabbit(x, y, communist=True)
             # Initialize needs with some variation
             rabbit.food_level = random.uniform(50, 100)
             rabbit.water_level = random.uniform(50, 100)

@@ -24,7 +24,9 @@ class SpriteCache:
         SpriteCache._sprites["rabbit_hop"] = QPixmap("assets/rabbit_hop.png")
         SpriteCache._sprites["rabbit_jump"] = QPixmap("assets/rabbit_jump.png")
         SpriteCache._sprites["rabbit_rizz"] = QPixmap("assets/rabbit_rizz.png")
-
+        SpriteCache._sprites["rabbit_preach"] = QPixmap("assets/rabbit_preach.png")
+        SpriteCache._sprites["speech_bubble_0"] = QPixmap("assets/speech_bubble_1.png")
+        SpriteCache._sprites["speech_bubble_1"] = QPixmap("assets/speech_bubble_1.png")
 
     @staticmethod
     def get(name):
