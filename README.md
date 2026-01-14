@@ -1,3 +1,6 @@
+# Cursor is bad
+I got some free credits on Cursor, and its bad. I'll probably rewrite this so it is performant later.
+
 # Rabbit Prison
 
 A game where you play as the warden managing rabbit prisoners, inspired by The Escapists.
